@@ -19,22 +19,23 @@ walmart <- readr::read_csv("https://raw.githubusercontent.com/holleland/BAN430/m
 
 # (2) ----
 
-# Is Trend or seasonality present
-# Preliminary analysis of the time series
+# Time series plot of the weekly sales data
 walmart %>% autoplot(Weekly_Sales) +
   theme_minimal() +
   theme(legend.position = "none") +
   labs(title = "Weekly sales of 45 Walmart stores") +
+  scale_y_continuous(labels = label_number()) +
   xlab("Week") + ylab("weekly sales in USD")
-  
 
+# aggregate the data from weekly to monthly (mean) sales
 walmart.month <- walmart %>% 
   group_by(Store) %>% 
   index_by(Month =~yearmonth(.)) %>% 
   summarize(Mean_Monthly_Sales = mean(Weekly_Sales))
 
-# Mean Sales per month for all stores
+# mean Sales per month for all stores
 walmart.month %>% autoplot() +
+  scale_y_continuous(labels = label_number()) +
   theme(legend.position = "none")
 
 # Mean Sales per calendar month for all stores

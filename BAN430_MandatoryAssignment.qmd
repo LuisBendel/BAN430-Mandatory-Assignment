@@ -5,23 +5,50 @@ editor: visual
 ---
 
 ## Libraries
+
+Please make sure to have the following packages installed before running the code. The code does not automatically check if libraries are missing, nor installs the packages automatically.
+
 ```{r, eval=T, error=TRUE, message=FALSE, warning=FALSE}
 library(fpp3)
+library(fable)
+library(tidyverse)
+library(lubridate)
+library(urca)
+library(scales)
 ```
 
+On this assignment, we work with weekly sales data from 45 Walmart stores between 2010 and 1013. We load the data from the course github page:
 
 ```{r, eval=T, error=TRUE, message=FALSE, warning=FALSE}
+# Load and transform data to tsibble
 walmart <- readr::read_csv("https://raw.githubusercontent.com/holleland/BAN430/master/data/Walmart.csv") %>% 
-  as_tsibble()
-
-
+  mutate(Date = yearweek(as.Date(Date, format = "%d-%m-%Y"))) %>% 
+  rename(Yearweek = Date) %>% 
+  as_tsibble(index = Yearweek,
+             key = Store)
 ```
 
-You can add options to executable code like this
+# TASK 2: Preliminary Data Analysis
 
-```{r}
-#| echo: false
-2 * 2
+First, we do some preliminary data analysis to determine whether there is any seasonal pattern or trend present, or whether any of the other variables have a visual effect on weekly sales.
+
+```{r, eval=T, error=TRUE, message=FALSE, warning=FALSE}
+# Time series plot of the weekly sales data
+walmart %>% autoplot(Weekly_Sales) +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  labs(title = "Weekly sales of 45 Walmart stores") +
+  scale_y_continuous(labels = label_number()) +
+  xlab("Week") + ylab("weekly sales in USD")
+
+# aggregate the data from weekly to monthly (mean) sales
+walmart.month <- walmart %>% 
+  group_by(Store) %>% 
+  index_by(Month =~yearmonth(.)) %>% 
+  summarize(Mean_Monthly_Sales = mean(Weekly_Sales))
+
+# mean Sales per month for all stores
+walmart.month %>% autoplot() +
+  scale_y_continuous(labels = label_number()) +
+  theme(legend.position = "none")
 ```
-
-The `echo: false` option disables the printing of code (only output is displayed).
