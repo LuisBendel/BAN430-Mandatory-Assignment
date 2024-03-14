@@ -1,0 +1,27 @@
+---
+title: "BAN430 Mandatory Assignment"
+format: html
+editor: visual
+---
+
+## Libraries
+```{r, eval=T, error=TRUE, message=FALSE, warning=FALSE}
+library(fpp3)
+```
+
+
+```{r, eval=T, error=TRUE, message=FALSE, warning=FALSE}
+walmart <- readr::read_csv("https://raw.githubusercontent.com/holleland/BAN430/master/data/Walmart.csv") %>% 
+  as_tsibble()
+
+
+```
+
+You can add options to executable code like this
+
+```{r}
+#| echo: false
+2 * 2
+```
+
+The `echo: false` option disables the printing of code (only output is displayed).
