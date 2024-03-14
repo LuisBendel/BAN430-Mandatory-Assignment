@@ -33,10 +33,11 @@ walmart.month <- walmart %>%
   index_by(Month =~yearmonth(.)) %>% 
   summarize(Mean_Monthly_Sales = mean(Weekly_Sales))
 
+# Mean Sales per month for all stores
 walmart.month %>% autoplot() +
   theme(legend.position = "none")
 
-# Mean Sales per Calendar Month for all stores
+# Mean Sales per calendar month for all stores
 walmart.month %>%
   as_tibble() %>% 
   mutate(Month = month(Month)) %>% 
@@ -44,6 +45,15 @@ walmart.month %>%
   summarise(Mean = mean(Mean_Monthly_Sales)) %>% 
   ggplot(aes(x = as.factor(Month), y = Mean, group = Store, color = Store)) +
   geom_line()
+
+# season plots for stores 1-5
+walmart %>% 
+  filter(Store %in% c(1:5)) %>% 
+  gg_season(Weekly_Sales) +
+  theme_minimal() +
+  labs(title = "Weekly sales per year for stores 1-5") +
+  scale_y_continuous(labels = label_number()) +
+  ylab("Weekly Sales")
 
 # Are any visible effects of holidays, temperature, fuel price or unemployment present
 walmart %>% 
@@ -60,6 +70,19 @@ walmart %>%
   labs(title = "Boxplot comparison of holiday sales and non-holiday sales") +
   xlab("Holiday") + ylab("Weekly Sales")
 
+# scatterplot of weekly sales on temperature, fuel price, and unemployment
+walmart %>% 
+  pivot_longer(c("Temperature", "Fuel_Price", "Unemployment"),
+               values_to = "Value",
+               names_to = "Predictor") %>% 
+  ggplot(aes(x = Value, y = Weekly_Sales)) +
+  geom_point() +
+  geom_smooth() +
+  facet_wrap(~ Predictor, scales = "free_x") +
+  theme_minimal() +
+  labs(title = "Weekly sales on temperature, fuel price, and unemployment") +
+  ylab("Weekly Sales")
+
 # should we inflation adjust the data?
 walmart %>% 
   mutate(Weekly_Sales_Adj = (Weekly_Sales / CPI * 100)) %>% 
@@ -73,6 +96,20 @@ walmart %>%
   ggplot(aes(x = Yearweek, y = Weekly_Sales)) +
   geom_line() +
   facet_grid(Measure ~ .)
+
+# should we use a mathematical transformation?
+walmart %>% 
+  mutate(Log_Weekly_Sales = log(Weekly_Sales)) %>% 
+  pivot_longer(c("Weekly_Sales", "Log_Weekly_Sales"),
+               values_to = "Weekly_Sales",
+               names_to = "Measure") %>% 
+  mutate(Measure = as.factor(Measure)) %>% 
+  as_tibble() %>% 
+  group_by(Yearweek, Measure) %>% 
+  summarise(Weekly_Sales = mean(Weekly_Sales)) %>% 
+  ggplot(aes(x = Yearweek, y = Weekly_Sales)) +
+  geom_line() +
+  facet_grid(Measure ~ ., scales = "free_y")
 
 
 
@@ -137,11 +174,9 @@ fit <-
     DYNAMIC = ARIMA(Weekly_Sales ~ 1 + as.factor(Holiday_Flag))
   )
 
-# forecast based on training
+# forecast based on test data
 fc <- fit %>% 
   forecast(new_data = walmart.test.3)
-
-autoplot(fc)
 
 # display forecast vs. test data
 fc %>% 
@@ -153,8 +188,24 @@ fc %>%
   labs(title = "Test data (black) vs forecasts for each model") +
   theme(legend.position = "none", axis.text.x = element_text(angle = 45, size = 8, hjust = 1))
 
-report(fit)
+# compute the RMSE for all models
+accuracy(fc, data = walmart.test.3) %>% 
+  select(.model, Store, RMSE) %>% 
+  arrange(RMSE)
 
+# plot innovation residuals for all models
+augment(fit) %>% 
+  autoplot(.innov) +
+  facet_wrap(~ .model) +
+  theme_minimal() +
+  labs(title = )
 
-
-fit$DYNAMIC
+# plot autocorrelation functions of residuals for models that assume uncorrelated errors
+fit %>%
+  select(ARIMA113010, ARIMA011010, ARIMAauto, ETS_ANN, ETS_AAN, DYNAMIC) %>% 
+  augment() %>%
+  ACF(.innov) %>%
+  autoplot() +
+  facet_wrap(~.model) +
+  theme_minimal() +
+  labs(title = "Autocorrelation plots for selected models.")
